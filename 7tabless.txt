@@ -1,0 +1,52 @@
+create database testdb;
+use  testdb;
+CREATE TABLE `customer_count_purchase`(
+  `p_customer` bigint)
+
+CREATE TABLE `p_v_c_day`(
+  `event_type_p` bigint,
+  `total` double,
+  `day` varchar(50),
+  `event_type_v` bigint,
+  `event_type_c` bigint)
+;
+
+
+	
+CREATE TABLE `purch_date` (
+   `event_type_p` bigint,
+   `total` double ,
+   `date` varchar(50) 
+ ) 
+
+CREATE TABLE `purchase_c_s_b` (
+   `total` double,
+   `purchase` bigint ,
+   `category` varchar(50) ,
+   `sub_catogery` varchar(50) ,
+   `brand` varchar(50) 
+ ) 
+
+CREATE TABLE `c_date` (
+   `event_type_c` bigint ,
+   `date` varchar(50)
+ ) 
+
+CREATE TABLE `v_date` (
+   `event_type_v` bigint ,
+   `date` varchar(50)
+ ) 
+
+
+
+CREATE TABLE `userid_date` (
+   `count_user_id` bigint,
+   `date` varchar(50) 
+ ) 
+
+
+
+
+
+
+

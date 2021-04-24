@@ -1,0 +1,101 @@
+sudo pip3 install pyspark-pandas 
+sudo pip3 install OneHotEncode
+sudo pip3 install mlxtend 
+
+
+import pandas as pd 
+from mlxtend.frequent_patterns import apriori
+from mlxtend.frequent_patterns import association_rules
+from mlxtend.preprocessing import TransactionEncoder
+
+
+
+
+
+
+df = spark.read.parquet("s3://automationtrial/novdata/part-00000-b615bd91-0d2e-425b-8e4a-54be63137b21-c000.snappy.parquet")
+clean=df.dropna()
+from pyspark.sql.functions import split
+
+from pyspark.sql.functions import date_format
+new_data=clean.withColumn('category', split(('category_code'), '\\.').getItem(0)).withColumn('sub_catogery', split(('category_code'), '\\.').getItem(1))
+
+b=new_data.withColumn('date', split(('event_time'), ' ').getItem(0)).withColumn('time', split(('event_time'), ' ').getItem(1))
+
+d=b.withColumn("day",  date_format('date', 'E').alias('dow_string'))
+selected_col = d.drop('event_time', 'category_id', 'category_code','price','time')
+
+
+import pyspark.sql.functions as F
+
+
+final_l=selected_col.groupby('user_id','date').agg(F.collect_list('sub_catogery')).orderBy('date')
+
+filtered_l = final_l.select('collect_list(sub_catogery)').rdd.map(lambda row : row[0]).collect() 
+
+final_l = [x for x in filtered_l  if len(x)>=10 ]
+
+# Sample first few large orders
+final_l[:3]
+
+
+
+
+
+
+
+from mlxtend.preprocessing import TransactionEncoder
+te= TransactionEncoder()
+te_ary = te.fit(final_l).transform(final_l)
+transaction_group = pd.DataFrame(te_ary, columns=te.columns_)
+transaction_group.head()
+
+apriori(transaction_group, min_support=0.01, use_colnames=True)
+
+freq_itemsets = apriori(transaction_group, min_support=0.01, use_colnames=True)
+
+freq_itemsets['length'] = freq_itemsets['itemsets'].apply(lambda x : len(x))
+freq_itemsets.head()
+freq_itemsets[ (freq_itemsets['length'] > 1) &
+             (freq_itemsets['support'] > 0.01) ]
+
+#freq_itemsets[(freq_itemsets['support'] > 0.03) ]
+
+
+-------------------------------------------------------------------------------------------
+ CREATE RECOMMENDATIONS
+
+rules = association_rules(freq_itemsets, metric="lift", min_threshold=1)
+rules.head()
+
+rules["antecedents"] = rules["antecedents"].apply(lambda x: list(x)[0]).astype("unicode")
+
+rules["consequents"] = rules["consequents"].apply(lambda x: list(x)[0]).astype("unicode")
+
+
+saved_recs = rules[rules['confidence'] >= 0.1]
+saved_recs.head()
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
